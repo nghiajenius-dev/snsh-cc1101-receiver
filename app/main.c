@@ -25,6 +25,7 @@
 
 #include "utils/uartstdio.h"
 
+
 volatile uint16_t x;
 mrfiPacket_t packet;
 
@@ -41,6 +42,15 @@ unsigned char *msgDataPtr = (unsigned char *)&msgData; // make a pointer to msgD
 tCANMsgObject send_msg;
 tCANMsgObject msg; // the CAN msg object
 unsigned char r_msgData[8]; // 8 byte buffer for rx message data
+
+double R_OP[3];
+double i_count;
+double RCM[15] = {105, 5.8, 206.4, 204.3, 105.5, 206.4, 105.5, 204.5, 206.4, 5.9, 105, 206.4, 105, 105, 190};
+//orgRCM = [  105;5.8;206.4;
+//;;  204.3   105.5   206.4;
+//;;  105.5   204.5   206.4;
+//;;  5.9;105;206.4;
+//;;  105;105;190 ];
 
 // CAN interrupt handler
 void CANIntHandler(void) {
@@ -109,6 +119,8 @@ int main()
 	MRFI_RxOn();
 	packet.frame[0]=8+5;
 	UARTprintf("test UART\r\n");
+
+//	LeastSquare_initialize();
 	while (1)
 	{
 		if(rxFlag) { // rx interrupt has occured
@@ -118,9 +130,10 @@ int main()
 			CANMessageGet(CAN0_BASE, 1, &msg, 0); // read CAN message object 1 from CAN peripheral
 
 			rxFlag = 0;
-			if(msg.ui32Flags & MSG_OBJ_DATA_LOST) { // check msg flags for any lost messages
-				UARTprintf("CAN message loss detected\n");
-			}
+//			if(msg.ui32Flags & MSG_OBJ_DATA_LOST) { // check msg flags for any lost messages
+//				UARTprintf("CAN message loss detected\n");
+//			}
+
 //			UARTprintf("%d ", r_msgData[0]);
 //			UARTprintf("%d", r_msgData[1]*256 + r_msgData[2]);
 //			UARTprintf("%d", r_msgData[2]);

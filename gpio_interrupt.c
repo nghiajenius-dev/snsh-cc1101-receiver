@@ -51,18 +51,50 @@ uint16_t len;
 static TIMER_ID timer = INVALID_TIMER_ID;
 
 extern uint16_t CAN_MSG[12][4];		// ID - DATA - XXX - XXX
+int16_t rev_distance[5]= {1864, 1877, 2086, 2090, 1542};
+uint16_t i;
+
+// Calib coeffs for each receivers, from receiver 1 to receiver 5 respectively (DA->AB->BC->CD->G)
+double a[5] = { 0.8641, 0.8672, 0.8641, 0.8652, 0.8649 };      // CD->G
+double K[5] = { 4.891, 3.848, 5.756, 4.71, 5.226 };             // CD->G
 
 void TriggerIsr(void);
 void PortA_Isr(void);
 void PortD_Isr(void);
 void PortE_Isr(void);
 void TranferData_Isr(void);
+void dec2bin(int16_t dec, char* bin);
+void send_ips_frame(int16_t data[5]);
+
+void dec2bin(int16_t dec, char bin[2]){
+	bin[0] = (dec >> 0)  & 0xFF;
+	bin[1] = (dec >> 8)  & 0xFF;
+}
+void send_ips_frame(int16_t data[5]){
+	char msg[5*2+2];
+	uint8_t i;
+	msg[0] = 's';
+	for(i=0;i<5;i++){
+		dec2bin(data[i],&msg[i*2+1]);
+	}
+	msg[5*2+1] = '\n';
+	for(i=0;i<5*2+2;i++){
+		UARTprintf("%c",msg[i]);
+	}
+}
 
 void TranferData_Isr(void)
 {
 //	UARTprintf("%d\r\n",CAN_MSG[4][1]);
 
+//	UARTprintf("%d,%d,%d,%d,%d\r\n",CAN_MSG[0][1],CAN_MSG[1][1],CAN_MSG[2][1],CAN_MSG[3][1],CAN_MSG[4][1]);
+
+	for(i=0;i<5;i++){
+		rev_distance[i] = (a[i] * CAN_MSG[i][1] + K[i])*10;	//mm
+	}
 	UARTprintf("%d,%d,%d,%d,%d\r\n",CAN_MSG[0][1],CAN_MSG[1][1],CAN_MSG[2][1],CAN_MSG[3][1],CAN_MSG[4][1]);
+//	UARTprintf("D:%d,%d,%d,%d,%d\r\n",rev_distance[0],rev_distance[1],rev_distance[2],rev_distance[3],rev_distance[4]);
+	send_ips_frame(rev_distance);
 
 	if(timer != INVALID_TIMER_ID)
 		TIMER_UnregisterEvent(timer);
