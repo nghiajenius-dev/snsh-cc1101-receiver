@@ -30,10 +30,11 @@ volatile uint16_t x;
 mrfiPacket_t packet;
 
 
-#define CAN_ID_OFFSET		(10+1)			// CAN_NODE_ID: 11,12,13,...
+#define CAN_ID_OFFSET		100			// CAN_NODE_ID: 10,11,12,13,...
 #define CAN_MAIN_ID			20
+#define MAX_CAN_NODE		30
 
-uint16_t CAN_MSG[12][4];		// ID - DATA - XXX - XXX
+uint16_t CAN_MSG[MAX_CAN_NODE][4];		// ID - DATA - XXX - XXX
 uint16_t counter = 0;
 volatile bool rxFlag = 0; // msg recieved flag
 volatile bool errFlag = 0; // error flag
@@ -43,14 +44,6 @@ tCANMsgObject send_msg;
 tCANMsgObject msg; // the CAN msg object
 unsigned char r_msgData[8]; // 8 byte buffer for rx message data
 
-double R_OP[3];
-double i_count;
-double RCM[15] = {105, 5.8, 206.4, 204.3, 105.5, 206.4, 105.5, 204.5, 206.4, 5.9, 105, 206.4, 105, 105, 190};
-//orgRCM = [  105;5.8;206.4;
-//;;  204.3   105.5   206.4;
-//;;  105.5   204.5   206.4;
-//;;  5.9;105;206.4;
-//;;  105;105;190 ];
 
 // CAN interrupt handler
 void CANIntHandler(void) {
@@ -82,12 +75,9 @@ void CAN_INIT(){
 
 int main()
 {
-
-	// Set the system clock to run at 50Mhz off PLL with external crystal as
-	// reference.
 	System_config();
 	Timer_Init();
-	config_gpio();
+//	config_gpio();
 	WTimer_counter_config();
 	Uart_RF_config();
 	CAN_INIT();
@@ -118,7 +108,7 @@ int main()
 	MRFI_WakeUp();
 	MRFI_RxOn();
 	packet.frame[0]=8+5;
-	UARTprintf("test UART\r\n");
+//	UARTprintf("test UART\r\n");
 
 //	LeastSquare_initialize();
 	while (1)
@@ -144,9 +134,8 @@ int main()
 			//Code .......
 			//  Store ID - DATA
 
-
-			CAN_MSG[r_msgData[0]-CAN_ID_OFFSET][0] = r_msgData[0];
-			CAN_MSG[r_msgData[0]-CAN_ID_OFFSET][1] = r_msgData[1]*256 + r_msgData[2];
+			CAN_MSG[r_msgData[0]-CAN_ID_OFFSET][0] = r_msgData[0]-CAN_ID_OFFSET;
+			CAN_MSG[r_msgData[0]-CAN_ID_OFFSET][1] = r_msgData[1]*256 + r_msgData[2];	// uint16 format
 
 		}
 	}
@@ -155,7 +144,6 @@ void MRFI_RxCompleteISR()
 {
 	//MRFI_Transmit(&packet, MRFI_TX_TYPE_FORCED);
 	start_counter();
-
 
 	 msgDataPtr[0] = 20;
 	 CANMessageSet(CAN0_BASE, 2, &send_msg, MSG_OBJ_TYPE_TX); // send as msg object 1
